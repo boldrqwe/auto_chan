@@ -1,16 +1,30 @@
+import logging
 from telegram.ext import ApplicationBuilder, CommandHandler
-import os
+
+# Настраиваем логирование
+logging.basicConfig(
+    filename="application.log",
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 async def start_command(update, context):
-    await update.message.reply_text("Привет! Я Telegram-бот.")
+    await update.message.reply_text("Hello! I'm a Telegram bot.")
 
-async def start_bot():
-    token = os.getenv("BOT_TOKEN")
+async def start_bot(token):
+    logging.info("Starting Telegram bot...")
     if not token:
-        raise ValueError("Не задан токен Telegram-бота. Проверьте переменные окружения!")
+        logging.error("Telegram bot token is not set!")
+        raise ValueError("Telegram bot token is not set!")
 
     application = ApplicationBuilder().token(token).build()
     application.add_handler(CommandHandler("start", start_command))
 
-    # Запуск бота
-    await application.run_polling()
+    try:
+        await application.initialize()
+        await application.start()
+        await application.updater.start_polling()
+    except Exception as e:
+        logging.error(f"Error occurred while running Telegram bot: {e}")
+    finally:
+        await application.stop()
