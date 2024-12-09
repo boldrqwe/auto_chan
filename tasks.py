@@ -4,6 +4,8 @@ import asyncio
 from media_utils import create_input_media
 from harkach_markup_converter import HarkachMarkupConverter
 
+__STEP = 6
+
 logger = logging.getLogger(__name__)
 
 converter = HarkachMarkupConverter()
@@ -56,9 +58,9 @@ async def job_collect_media(dvach, posted_media, media_queue, batch_size=5, dela
 
             # Разбиваем медиа на группы по 10 штук
             media_groups = []
-            for j in range(0, len(new_media), 10):
+            for j in range(0, len(new_media), __STEP):
                 group = []
-                batch_group = new_media[j:j+10]
+                batch_group = new_media[j:j + __STEP]
                 for idx, u in enumerate(batch_group):
                     # Первый элемент первой группы с подписью
                     if j == 0 and idx == 0:
