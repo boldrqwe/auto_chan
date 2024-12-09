@@ -91,3 +91,4 @@ class HarkachMarkupConverter:
                   .replace('&quot;', '"')
                   .replace("<br>", "<br />"))
         return result
+
