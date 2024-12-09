@@ -35,7 +35,7 @@ class DvachService:
                 self.logger.exception(f"Неожиданная ошибка при получении тредов: {e}")
                 raise
 
-    def fetch_thread_data(self, thread_num, board="b", max_retries=3, delay=5):
+    def fetch_thread_data(self, thread_num, board="b", max_retries=3, delay=10):
         url = f"{self.BASE_URL}/{board}/res/{thread_num}.json"
         self.logger.info(f"Попытка получить данные треда {thread_num} с {url}")
 
