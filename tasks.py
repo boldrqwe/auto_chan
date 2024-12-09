@@ -65,6 +65,12 @@ def job_collect_media(dvach, posted_media, media_queue):
     logger.info("Сбор медиа завершен. Обработано тредов: %d, найдено медиа: %d, очередь размером: %d",
                 threads_processed, media_found, len(media_queue))
 
+import logging
+import asyncio
+from telegram.error import RetryAfter
+
+logger = logging.getLogger(__name__)
+
 async def post_media_from_queue(bot, TELEGRAM_CHANNEL_ID, POST_INTERVAL, media_queue):
     """Отправка групп из очереди в канал."""
     logger.info("Запуск задачи отправки медиагрупп в Telegram.")
@@ -76,7 +82,18 @@ async def post_media_from_queue(bot, TELEGRAM_CHANNEL_ID, POST_INTERVAL, media_q
                 await bot.send_media_group(chat_id=TELEGRAM_CHANNEL_ID, media=media_group)
                 logger.info("Медиагруппа успешно отправлена.")
                 await asyncio.sleep(POST_INTERVAL)
+            except RetryAfter as e:
+                # Если Telegram говорит подождать, сделаем паузу
+                wait_time = e.retry_after
+                logger.error(f"Flood control exceeded. Подождем {wait_time} секунд, затем повторим.")
+                # Возвращаем медиагруппу обратно в начало очереди, чтобы попытаться позже
+                media_queue.insert(0, media_group)
+                await asyncio.sleep(wait_time)
             except Exception as e:
                 logger.error(f"Ошибка при отправке медиагруппы: {e}")
+                # Можно решить, что делать в случае других ошибок:
+                # Можно либо пропустить эту медиагруппу, либо вернуть её в очередь в конец,
+                # либо завершить программу. Здесь просто продолжаем.
         else:
             await asyncio.sleep(5)
+

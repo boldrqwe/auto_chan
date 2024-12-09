@@ -22,7 +22,7 @@ nest_asyncio.apply()
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 TELEGRAM_CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID", "@your_channel_name")
-POST_INTERVAL = int(os.environ.get("TELEGRAM_POST_INTERVAL", "10"))
+POST_INTERVAL = int(os.environ.get("TELEGRAM_POST_INTERVAL", "60"))
 
 if not BOT_TOKEN:
     logger.error("Не задан BOT_TOKEN, завершение работы.")
