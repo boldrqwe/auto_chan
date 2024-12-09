@@ -1,11 +1,16 @@
+import logging
 from telegram import InputMediaPhoto, InputMediaVideo
 
-def create_input_media(url: str):
-    """Определяем тип медиа для отправки в группу."""
+logger = logging.getLogger(__name__)
+
+def create_input_media(url: str, caption: str = None):
+    """Определяем тип медиа для отправки в группу, сразу задавая caption при создании."""
+    # Логируем создание медиа объекта
+    logger.debug(f"Создание медиа-объекта для URL: {url}, caption: {caption is not None}")
     if any(url.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif"]):
-        return InputMediaPhoto(url)
+        return InputMediaPhoto(media=url, caption=caption)
     elif any(url.endswith(ext) for ext in [".webm", ".mp4"]):
-        return InputMediaVideo(url)
+        return InputMediaVideo(media=url, caption=caption)
     else:
-        # По умолчанию считаем фото
-        return InputMediaPhoto(url)
+        logger.debug("Неизвестный формат. Используем InputMediaPhoto по умолчанию.")
+        return InputMediaPhoto(media=url, caption=caption)

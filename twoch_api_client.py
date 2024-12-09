@@ -1,56 +1,50 @@
 import requests
+import logging
 
 class TwoCHApiClient:
     def __init__(self, base_url="https://2ch.hk"):
         self.base_url = base_url.rstrip('/')
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def get_boards(self):
-        """
-        Получение списка досок и их настроек
-        Метод: GET /api/mobile/v2/boards
-        """
         url = f"{self.base_url}/api/mobile/v2/boards"
+        self.logger.info(f"Запрос списка досок: {url}")
         r = requests.get(url)
         r.raise_for_status()
-        return r.json()  # Возвращает JSON с данными о досках
+        data = r.json()
+        self.logger.debug(f"Ответ на get_boards: ключи {list(data.keys()) if isinstance(data, dict) else 'не dict'}")
+        return data
 
     def get_thread_posts_after(self, board: str, thread_id: int, post_num: int):
-        """
-        Получение постов в треде >= указанного поста
-        Метод: GET /api/mobile/v2/after/{board}/{thread}/{num}
-        """
         url = f"{self.base_url}/api/mobile/v2/after/{board}/{thread_id}/{post_num}"
+        self.logger.info(f"Запрос постов после {post_num} в треде {thread_id} на доске {board}: {url}")
         r = requests.get(url)
         r.raise_for_status()
-        return r.json()
+        data = r.json()
+        self.logger.debug(f"Ответ keys: {list(data.keys()) if isinstance(data, dict) else 'не dict'}")
+        return data
 
     def get_thread_info(self, board: str, thread_id: int):
-        """
-        Получение информации о треде
-        Метод: GET /api/mobile/v2/info/{board}/{thread}
-        """
         url = f"{self.base_url}/api/mobile/v2/info/{board}/{thread_id}"
+        self.logger.info(f"Запрос информации о треде {thread_id} на доске {board}: {url}")
         r = requests.get(url)
         r.raise_for_status()
-        return r.json()
+        data = r.json()
+        self.logger.debug(f"Ответ keys: {list(data.keys()) if isinstance(data, dict) else 'не dict'}")
+        return data
 
     def get_post(self, board: str, post_num: int):
-        """
-        Получение информации о посте
-        Метод: GET /api/mobile/v2/post/{board}/{num}
-        """
         url = f"{self.base_url}/api/mobile/v2/post/{board}/{post_num}"
+        self.logger.info(f"Запрос поста {post_num} на доске {board}: {url}")
         r = requests.get(url)
         r.raise_for_status()
-        return r.json()
+        data = r.json()
+        self.logger.debug(f"Ответ keys: {list(data.keys()) if isinstance(data, dict) else 'не dict'}")
+        return data
 
     def get_captcha_id(self, board: str = None, thread_id: int = None):
-        """
-        Получение ID для emoji капчи
-        Метод: GET /api/captcha/emoji/id
-        Параметры: board, thread (опционально)
-        """
         url = f"{self.base_url}/api/captcha/emoji/id"
+        self.logger.info(f"Запрос captcha_id board={board}, thread={thread_id}: {url}")
         params = {}
         if board:
             params['board'] = board
@@ -58,39 +52,36 @@ class TwoCHApiClient:
             params['thread'] = thread_id
         r = requests.get(url, params=params)
         r.raise_for_status()
-        return r.json()
+        data = r.json()
+        self.logger.debug(f"Ответ keys: {list(data.keys()) if isinstance(data, dict) else 'не dict'}")
+        return data
 
     def show_emoji_captcha(self, captcha_id: str):
-        """
-        Получение состояния emoji капчи
-        Метод: GET /api/captcha/emoji/show?id={captcha_id}
-        """
         url = f"{self.base_url}/api/captcha/emoji/show"
+        self.logger.info(f"Запрос состояния emoji капчи {captcha_id}: {url}")
         params = {'id': captcha_id}
         r = requests.get(url, params=params)
         r.raise_for_status()
-        return r.json()
+        data = r.json()
+        self.logger.debug(f"Ответ keys: {list(data.keys()) if isinstance(data, dict) else 'не dict'}")
+        return data
 
     def click_emoji_captcha(self, captchaTokenID: str, emojiNumber: int):
-        """
-        Клик на emoji клавиатуре
-        Метод: POST /api/captcha/emoji/click
-        """
         url = f"{self.base_url}/api/captcha/emoji/click"
+        self.logger.info(f"Клик по emoji капче captchaTokenID={captchaTokenID}, emojiNumber={emojiNumber}: {url}")
         payload = {
             "captchaTokenID": captchaTokenID,
             "emojiNumber": emojiNumber
         }
         r = requests.post(url, json=payload)
         r.raise_for_status()
-        return r.json()
+        data = r.json()
+        self.logger.debug(f"Ответ keys: {list(data.keys()) if isinstance(data, dict) else 'не dict'}")
+        return data
 
     def get_app_id(self, public_key: str, board: str = None, thread_id: int = None):
-        """
-        Получение app_response_id для отправки поста
-        Метод: GET /api/captcha/app/id/{public_key}
-        """
         url = f"{self.base_url}/api/captcha/app/id/{public_key}"
+        self.logger.info(f"Запрос app_id public_key={public_key}, board={board}, thread={thread_id}: {url}")
         params = {}
         if board:
             params['board'] = board
@@ -98,22 +89,15 @@ class TwoCHApiClient:
             params['thread'] = thread_id
         r = requests.get(url, params=params)
         r.raise_for_status()
-        return r.json()
-
-    # Аналогично можно добавить методы для /user/posting, /user/report, /user/passlogin, /api/like, /api/dislike
-    # В них потребуется отправлять POST запросы с multipart/form-data (например, для /user/posting).
-    # Ниже пример создания поста (упрощённый):
+        data = r.json()
+        self.logger.debug(f"Ответ keys: {list(data.keys()) if isinstance(data, dict) else 'не dict'}")
+        return data
 
     def create_post(self, board: str, captcha_type: str, comment: str,
                     thread_id: int = None, files: list = None,
                     name: str = None, email: str = None, subject: str = None):
-        """
-        Создание нового поста или треда
-        Метод: POST /user/posting
-
-        Параметры для body: multipart/form-data
-        """
         url = f"{self.base_url}/user/posting"
+        self.logger.info(f"Создание поста на доске {board}, thread_id={thread_id}, captcha_type={captcha_type}: {url}")
         data = {
             "captcha_type": captcha_type,
             "board": board,
@@ -130,12 +114,12 @@ class TwoCHApiClient:
 
         files_payload = []
         if files:
-            # files - список путей к файлам
-            # Пример: files = ["image.jpg"]
-            # Мы должны прикрепить их в формате files[] = open('image.jpg', 'rb')
             for f in files:
+                self.logger.debug(f"Прикрепляем файл {f} к посту.")
                 files_payload.append(('file[]', (f, open(f, 'rb'))))
 
         r = requests.post(url, data=data, files=files_payload if files else None)
         r.raise_for_status()
-        return r.json()
+        response_data = r.json()
+        self.logger.debug(f"Ответ на создание поста keys: {list(response_data.keys()) if isinstance(response_data, dict) else 'не dict'}")
+        return response_data

@@ -23,8 +23,7 @@ class DvachService:
                 r.raise_for_status()
                 data = r.json()
 
-                # Логируем ключи и объем данных для лучшего понимания ответа
-                self.logger.debug(f"Ответ получен. Ключи верхнего уровня: {list(data.keys())}")
+                self.logger.debug(f"Ответ получен. Ключи верхнего уровня: {list(data.keys()) if isinstance(data, dict) else 'не dict'}")
                 threads = data.get("threads", [])
                 self.logger.info(f"Получено тредов: {len(threads)}")
 
@@ -55,23 +54,21 @@ class DvachService:
                 r.raise_for_status()
                 data = r.json()
 
-                # Логируем список ключей верхнего уровня, чтобы понять структуру
-                self.logger.debug(f"Ответ для треда {thread_num} получен. Ключи: {list(data.keys())}")
+                self.logger.debug(f"Ответ для треда {thread_num} получен. Ключи: {list(data.keys()) if isinstance(data, dict) else 'не dict'}")
 
                 threads_data = data.get("threads", [])
                 if not threads_data:
                     self.logger.warning(f"threads_data отсутствуют или пусты для треда {thread_num}, данные: {data}")
                     return None
 
-                # Проверяем, что threads_data — это список и не пустой
                 if not isinstance(threads_data, list) or len(threads_data) == 0:
-                    self.logger.warning(f"threads_data не является непустым списком для треда {thread_num}. data: {data}")
+                    self.logger.warning(f"threads_data не список или пуст для треда {thread_num}. data: {data}")
                     return None
 
                 thread_info = threads_data[0]
                 posts = thread_info.get("posts", [])
                 if not posts:
-                    self.logger.warning(f"Посты отсутствуют в треде {thread_num}, thread_info ключи: {list(thread_info.keys())} data: {data}")
+                    self.logger.warning(f"Посты отсутствуют в треде {thread_num}, thread_info ключи: {list(thread_info.keys())}, data: {data}")
                     return None
 
                 # ОП-пост — это первый пост
@@ -93,7 +90,7 @@ class DvachService:
                             media_urls.append(full_url)
                             files_found += 1
 
-                self.logger.info(f"Тред {thread_num} получен успешно: ОП-комментарий длиной {len(op_comment)} символов, медиафайлов: {files_found}")
+                self.logger.info(f"Тред {thread_num} получен: ОП-комментарий длиной {len(op_comment)} символов, медиафайлов: {files_found}")
 
                 return {
                     "caption": op_comment,

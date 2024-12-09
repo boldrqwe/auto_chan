@@ -18,8 +18,9 @@ def job_collect_media(dvach, posted_media, media_queue):
     media_found = 0
 
     for t in threads:
-        thread_num = t.get("num")
+        thread_num = t.get("num") or t.get("thread_num")  # Проверяем поле num или thread_num
         if not thread_num:
+            logger.debug(f"Пропускаем тред без номера: {t}")
             continue
         try:
             t_data = dvach.fetch_thread_data(thread_num, board="b")
@@ -28,7 +29,7 @@ def job_collect_media(dvach, posted_media, media_queue):
             continue
 
         if not t_data:
-            logger.debug("Тред %s пуст или нет данных о постах.", thread_num)
+            logger.debug("Нет данных о треде %s (либо пустой)", thread_num)
             continue
 
         new_media = [m for m in t_data["media"] if m not in posted_media]
@@ -44,23 +45,22 @@ def job_collect_media(dvach, posted_media, media_queue):
         media_groups = []
         for i in range(0, len(new_media), batch_size):
             batch = new_media[i:i+batch_size]
-            media_group = [create_input_media(u) for u in batch]
-            media_groups.append(media_group)
-
-        # Добавляем подпись к первому медиа в первой группе
-        if media_groups and media_groups[0]:
-            media_groups[0][0].caption = t_data["caption"][:1024]  # Обрежем caption до 1024 символов для безопасности
+            # Формируем группу: первая группа, первый элемент - с подписью
+            group = []
+            for idx, u in enumerate(batch):
+                if i == 0 and idx == 0:
+                    # Первый элемент первой группы - с подписью
+                    group.append(create_input_media(u, caption=t_data["caption"][:1024]))
+                else:
+                    group.append(create_input_media(u))
+            media_groups.append(group)
 
         for g in media_groups:
             media_queue.append(g)
             media_found += len(g)
 
         threads_processed += 1
-
-        logger.info(
-            "Тред %s обработан. Новых медиа: %d. Всего групп: %d.",
-            thread_num, len(new_media), len(media_groups)
-        )
+        logger.info("Тред %s обработан. Новых медиа: %d, групп: %d.", thread_num, len(new_media), len(media_groups))
 
     logger.info("Сбор медиа завершен. Обработано тредов: %d, найдено медиа: %d, очередь размером: %d",
                 threads_processed, media_found, len(media_queue))
@@ -71,7 +71,7 @@ async def post_media_from_queue(bot, TELEGRAM_CHANNEL_ID, POST_INTERVAL, media_q
     while True:
         if media_queue:
             media_group = media_queue.pop(0)
-            logger.info("Отправка медиагруппы: %s", [m.media for m in media_group])
+            logger.info("Отправка медиагруппы из очереди: %s", [m.media for m in media_group])
             try:
                 await bot.send_media_group(chat_id=TELEGRAM_CHANNEL_ID, media=media_group)
                 logger.info("Медиагруппа успешно отправлена.")
