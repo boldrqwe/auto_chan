@@ -1,41 +1,37 @@
-import asyncio
+# media_poster.py
+
 import logging
-
+import redis
+import json
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
-
-from dvach_service import DvachService
-from utils import is_url_accessible, create_input_media
+from media_utils import create_input_media
 
 logger = logging.getLogger(__name__)
 
-
-
 class MediaPoster:
-    def __init__(self, bot, config):
-        self.bot = bot
+    def __init__(self, config):
         self.config = config
-        self.dvach_service = DvachService()  # Создаем экземпляр DvachService
-        self.posted_media = set()
-        self.media_queue = asyncio.Queue()
+        self.bot = config.bot  # Убедитесь, что Bot экземпляр правильно инициализирован
+        self.redis_client = redis.Redis(host='localhost', port=6379, db=1)
 
-
-    async def filter_accessible_media(self, media_urls):
-        accessible_media = []
-        for url in media_urls:
-            if await is_url_accessible(url):
-                accessible_media.append(url)
-            else:
-                logger.warning(f"URL недоступен: {url}")
-        return accessible_media
+    def enqueue_media(self, media_group):
+        """Добавляет медиагруппу в очередь Redis."""
+        try:
+            self.redis_client.rpush('media_queue', json.dumps(media_group))
+            logger.info("Медиагруппа добавлена в Redis очередь.")
+        except Exception as e:
+            logger.error(f"Ошибка при добавлении медиагруппы в очередь Redis: {e}")
 
     def generate_inline_keyboard(self, thread_url):
         button = InlineKeyboardButton("Перейти в тред", url=thread_url)
         return InlineKeyboardMarkup([[button]])
 
-    async def post_media(self):
+    def post_media_group(self):
+        """Отправляет медиагруппы из Redis очереди в Telegram."""
         while True:
             try:
-                media_group = await self.media_queue.get()
+                media_group_json = self.redis_client.blpop('media_queue', timeout=0)[1]
+                media_group = json.loads(media_group_json)
                 logger.info(f"Отправка медиагруппы: {media_group}")
 
                 # Проверка структуры данных
@@ -52,21 +48,15 @@ class MediaPoster:
                     logger.warning("Нет доступных медиа для отправки. Пропускаем.")
                     continue
 
-                # Фильтрация доступных медиа
-                filtered_media = await self.filter_accessible_media(media_urls)
-                if not filtered_media:
-                    logger.warning("Нет доступных медиа после фильтрации. Пропускаем.")
-                    continue
-
                 # Создание InputMedia объектов
                 input_media = [
                     create_input_media(url, caption if i == 0 else None)
-                    for i, url in enumerate(filtered_media)
+                    for i, url in enumerate(media_urls)
                 ]
 
                 # Отправка медиагруппы
-                await self.bot.send_media_group(chat_id=self.config.TELEGRAM_CHANNEL_ID, media=input_media)
-                await self.bot.send_message(
+                self.bot.send_media_group(chat_id=self.config.TELEGRAM_CHANNEL_ID, media=input_media)
+                self.bot.send_message(
                     chat_id=self.config.TELEGRAM_CHANNEL_ID,
                     text="Переходите в тред:",
                     reply_markup=self.generate_inline_keyboard(thread_url)
@@ -74,6 +64,3 @@ class MediaPoster:
                 logger.info("Медиагруппа и кнопка успешно отправлены.")
             except Exception as e:
                 logger.error(f"Ошибка при отправке медиагруппы: {e}")
-            finally:
-                await asyncio.sleep(self.config.POST_INTERVAL)
-

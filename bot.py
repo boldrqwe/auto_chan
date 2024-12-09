@@ -1,3 +1,5 @@
+# bot.py
+
 import asyncio
 import logging
 from telegram.ext import ApplicationBuilder
@@ -27,9 +29,10 @@ async def main():
     scheduler = Scheduler(media_handler, config)
     scheduler.start()
 
-    # Основной цикл
-    while True:
-        await asyncio.sleep(60)
+    # Запускаем бота
+    await application.start()
+    await application.updater.start_polling()
+    await application.updater.idle()
 
 if __name__ == "__main__":
     try:
