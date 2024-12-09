@@ -34,22 +34,15 @@ class HarkachMarkupConverter:
         return result
 
     def replace_spoiler_span(self, input_str: str) -> str:
-        # <span class="spoiler">...</span> -> <spoiler>...</spoiler>
-        regex = re.compile(r'<span class="spoiler">(.*?)</span>', flags=re.DOTALL)
-        result = input_str
-        while True:
-            match = regex.search(result)
-            if not match:
-                break
-            content = match.group(1)
-            replacement = f"<spoiler>{content}</spoiler>"
-            result = result[:match.start()] + replacement + result[match.end():]
+        # Убираем <spoiler>...</spoiler>, оставляя только текст внутри
+        regex = re.compile(r'<spoiler>(.*?)</spoiler>', flags=re.DOTALL)
+        result = regex.sub(r'\1', input_str)  # Удаляем теги <spoiler>, оставляя их содержимое
         return result
 
     def convert_to_tg_html(self, input_str: str) -> str:
         result = self.replace_underline_span(input_str)
         result = self.replace_unkfunc_span(result)
-        result = self.replace_spoiler_span(result)
+        result = self.replace_spoiler_span(result)  # Удаляем <spoiler>
 
         # Заменяем <em> -> <i>, <strong> -> <b>
         result = (result
@@ -91,4 +84,3 @@ class HarkachMarkupConverter:
                   .replace('&quot;', '"')
                   .replace("<br>", "<br />"))
         return result
-
