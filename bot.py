@@ -26,7 +26,7 @@ TELEGRAM_CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID", "-1002162401416")
 POST_INTERVAL = int(os.environ.get("TELEGRAM_POST_INTERVAL", "60"))  # Пауза между отправками в секундах
 FETCH_BATCH_SIZE = int(os.environ.get("FETCH_BATCH_SIZE", "1"))  # Количество тредов за раз
 FETCH_DELAY = int(os.environ.get("FETCH_DELAY", "60"))  # Пауза между пакетами в секундах
-
+logger.info(BOT_TOKEN);
 # Проверка переменных окружения
 if not BOT_TOKEN:
     logger.error("Не задан BOT_TOKEN. Завершение работы.")
