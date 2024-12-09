@@ -1,4 +1,3 @@
-# bot.py
 import os
 import logging
 import asyncio
@@ -20,15 +19,28 @@ logger = logging.getLogger(__name__)
 
 nest_asyncio.apply()
 
+# Загрузка переменных окружения
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 TELEGRAM_CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID", "@your_channel_name")
 POST_INTERVAL = int(os.environ.get("TELEGRAM_POST_INTERVAL", "60"))  # Пауза между отправками в секундах
 FETCH_BATCH_SIZE = int(os.environ.get("FETCH_BATCH_SIZE", "1"))  # Количество тредов за раз
 FETCH_DELAY = int(os.environ.get("FETCH_DELAY", "60"))  # Пауза между пакетами в секундах
 
+# Проверка переменных окружения
 if not BOT_TOKEN:
-    logger.error("Не задан BOT_TOKEN, завершение работы.")
-    raise ValueError("Не задан BOT_TOKEN")
+    logger.error("Не задан BOT_TOKEN. Завершение работы.")
+    raise ValueError("Переменная окружения BOT_TOKEN не задана!")
+
+if not TELEGRAM_CHANNEL_ID:
+    logger.error("Не задан TELEGRAM_CHANNEL_ID. Завершение работы.")
+    raise ValueError("Переменная окружения TELEGRAM_CHANNEL_ID не задана!")
+
+# Логируем переменные окружения (без BOT_TOKEN для безопасности)
+logger.info("Переменные окружения:")
+logger.info(f"  TELEGRAM_CHANNEL_ID: {TELEGRAM_CHANNEL_ID}")
+logger.info(f"  POST_INTERVAL: {POST_INTERVAL}")
+logger.info(f"  FETCH_BATCH_SIZE: {FETCH_BATCH_SIZE}")
+logger.info(f"  FETCH_DELAY: {FETCH_DELAY}")
 
 application = ApplicationBuilder().token(BOT_TOKEN).build()
 bot: Bot = application.bot
@@ -57,3 +69,4 @@ if __name__ == "__main__":
         logger.info("Получен сигнал остановки. Завершаем работу...")
     except Exception as e:
         logger.exception("Критическая ошибка в работе бота: %s", e)
+
