@@ -1,13 +1,14 @@
-import os
-import logging
 import asyncio
+import logging
+import os
+
+import httpx
 import nest_asyncio
-from telegram import Bot
+from telegram import Bot, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ApplicationBuilder
-from media_utils import create_input_media
+
 from dvach_service import DvachService
 from tasks import job_collect_media
-import httpx
 
 # Настройка логирования
 logging.basicConfig(
@@ -22,7 +23,7 @@ nest_asyncio.apply()
 
 # Загрузка переменных окружения
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-TELEGRAM_CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID", "-1002162401416")
+TELEGRAM_CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID")
 POST_INTERVAL = int(os.environ.get("TELEGRAM_POST_INTERVAL", "60"))  # Пауза между отправками в секундах
 FETCH_BATCH_SIZE = int(os.environ.get("FETCH_BATCH_SIZE", "1"))  # Количество тредов за раз
 FETCH_DELAY = int(os.environ.get("FETCH_DELAY", "60"))  # Пауза между пакетами в секундах
@@ -38,7 +39,7 @@ if not TELEGRAM_CHANNEL_ID:
 
 # Логируем переменные окружения
 logger.info("Переменные окружения:")
-logger.info(f"  TELEGRAM_CHANNEL_ID: {TELEGRAM_CHANNEL_ID}")
+# logger.info(f"  TELEGRAM_CHANNEL_ID: {TELEGRAM_CHANNEL_ID}")
 logger.info(f"  POST_INTERVAL: {POST_INTERVAL}")
 logger.info(f"  FETCH_BATCH_SIZE: {FETCH_BATCH_SIZE}")
 logger.info(f"  FETCH_DELAY: {FETCH_DELAY}")
@@ -72,6 +73,11 @@ async def filter_accessible_media(media_group):
             logger.warning(f"URL недоступен: {media.media}")
     return accessible_media
 
+def generate_inline_keyboard(thread_url):
+    """Создает клавиатуру с кнопкой для перехода на тред."""
+    button = InlineKeyboardButton("Перейти в тред", url=thread_url)
+    return InlineKeyboardMarkup([[button]])
+
 async def post_media_from_queue(bot, channel_id, interval, media_queue):
     while True:
         try:
@@ -84,9 +90,13 @@ async def post_media_from_queue(bot, channel_id, interval, media_queue):
                 logger.warning("Нет доступных медиа для отправки. Пропускаем группу.")
                 continue
 
-            # Отправка медиагруппы
+            # URL треда (передать через media_group или dvach)
+            thread_url = "https://2ch.hk/b/thread_num"  # Пример, заменить на динамическое
+
+            # Отправка медиагруппы с кнопкой
             await bot.send_media_group(chat_id=channel_id, media=filtered_media_group)
-            logger.info("Медиагруппа успешно отправлена.")
+            await bot.send_message(chat_id=channel_id, text="Переходите в тред:", reply_markup=generate_inline_keyboard(thread_url))
+            logger.info("Медиагруппа и кнопка успешно отправлены.")
 
         except asyncio.TimeoutError:
             logger.warning("Отправка медиагруппы прервана по таймауту. Это не критическая ошибка.")
