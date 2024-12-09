@@ -9,7 +9,7 @@ class DvachService:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def fetch_threads(self, board="b", max_retries=3, delay=10):
+    def fetch_threads(self, board="b", max_retries=3, delay=6):
         url = f"{self.BASE_URL}/{board}/threads.json"
         self.logger.info(f"Попытка получить список тредов с {url}")
 
