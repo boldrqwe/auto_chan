@@ -1,0 +1,49 @@
+services:
+
+  worker:
+    build:
+      context: .
+    container_name: celery_worker
+    command: celery -A celery_app worker --loglevel=info
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      TELEGRAM_CHANNEL_ID: ${TELEGRAM_CHANNEL_ID}
+      TELEGRAM_POST_INTERVAL: ${TELEGRAM_POST_INTERVAL}
+      FETCH_BATCH_SIZE: ${FETCH_BATCH_SIZE}
+      FETCH_DELAY: ${FETCH_DELAY}
+      REDIS_URL: ${REDIS_URL}
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+  beat:
+    build:
+      context: .
+    container_name: celery_beat
+    command: celery -A celery_app beat --loglevel=info
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      TELEGRAM_CHANNEL_ID: ${TELEGRAM_CHANNEL_ID}
+      TELEGRAM_POST_INTERVAL: ${TELEGRAM_POST_INTERVAL}
+      FETCH_BATCH_SIZE: ${FETCH_BATCH_SIZE}
+      FETCH_DELAY: ${FETCH_DELAY}
+      REDIS_URL: ${REDIS_URL}
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+  bot:
+    build:
+      context: .
+    container_name: telegram_bot
+    command: python bot.py
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      TELEGRAM_CHANNEL_ID: ${TELEGRAM_CHANNEL_ID}
+      TELEGRAM_POST_INTERVAL: ${TELEGRAM_POST_INTERVAL}
+      FETCH_BATCH_SIZE: ${FETCH_BATCH_SIZE}
+      FETCH_DELAY: ${FETCH_DELAY}
+      REDIS_URL: ${REDIS_URL}
+    volumes:
+      - .:/app
+    restart: unless-stopped
