@@ -124,4 +124,3 @@ if __name__ == "__main__":
         logger.info("Получен сигнал остановки. Завершаем работу...")
     except Exception as e:
         logger.exception("Критическая ошибка в работе бота: %s", e)
-
