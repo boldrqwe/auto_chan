@@ -1,11 +1,15 @@
 # tasks.py
 import logging
-from celery import Celery
+import asyncio
 from media_utils import create_input_media
 from harkach_markup_converter import HarkachMarkupConverter
 from dvach_service import DvachService
+from celery import Celery
 from telegram import Bot
 from telegram.error import RetryAfter
+import os
+import time
+import aiohttp
 
 # Инициализация Celery
 app = Celery('tasks')
@@ -16,6 +20,17 @@ logger = logging.getLogger(__name__)
 converter = HarkachMarkupConverter()
 dvach = DvachService()
 posted_media = set()
+
+async def download_file(url: str) -> str:
+    """Асинхронно скачивает файл и возвращает путь к нему."""
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status == 200:
+                with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                    tmp.write(await response.read())
+                    return tmp.name
+            else:
+                raise Exception(f"Не удалось скачать файл: {url} с статусом {response.status}")
 
 @app.task(bind=True, max_retries=5)
 def job_collect_media(self, TELEGRAM_CHANNEL_ID, POST_INTERVAL):
@@ -94,6 +109,7 @@ def send_media_group(self, TELEGRAM_CHANNEL_ID, media_group, POST_INTERVAL):
     logger.info("Отправка медиагруппы из очереди: %s", [m.media for m in media_group])
     try:
         bot = Bot(token=os.environ.get("BOT_TOKEN"))
+        # Отправляем медиагруппу
         bot.send_media_group(chat_id=TELEGRAM_CHANNEL_ID, media=media_group, parse_mode='HTML')
         logger.info("Медиагруппа успешно отправлена.")
         time.sleep(POST_INTERVAL)  # Пауза между отправками
@@ -101,7 +117,7 @@ def send_media_group(self, TELEGRAM_CHANNEL_ID, media_group, POST_INTERVAL):
         wait_time = e.retry_after
         logger.error(f"Flood control exceeded. Подождем {wait_time} секунд, затем повторим.")
         self.retry(countdown=wait_time)
-        # Возвращаем медиагруппу обратно в очередь
+        # Возвращаем медиагруппу обратно в очередь, чтобы попытаться позже
         send_media_group.delay(TELEGRAM_CHANNEL_ID, media_group, POST_INTERVAL)
     except Exception as e:
         logger.error(f"Ошибка при отправке медиагруппы: {e}")
