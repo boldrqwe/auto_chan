@@ -11,7 +11,6 @@ class HarkachMarkupConverter:
         # <span class="u">...</span> -> <u>...</u>
         regex = re.compile(r'<span class="u">(.*?)</span>', flags=re.DOTALL)
         result = input_str
-        # Заменяем все вхождения
         while True:
             match = regex.search(result)
             if not match:
@@ -35,9 +34,7 @@ class HarkachMarkupConverter:
         return result
 
     def replace_spoiler_span(self, input_str: str) -> str:
-        # Если хотите сделать <span class="spoiler">...</span> в <spoiler>...</spoiler>
-        # Если нет, можно просто удалять class="spoiler" атрибут.
-        # Пример: <span class="spoiler">...content...</span> -> <spoiler>...content...</spoiler>
+        # <span class="spoiler">...</span> -> <spoiler>...</spoiler>
         regex = re.compile(r'<span class="spoiler">(.*?)</span>', flags=re.DOTALL)
         result = input_str
         while True:
@@ -49,34 +46,33 @@ class HarkachMarkupConverter:
             result = result[:match.start()] + replacement + result[match.end():]
         return result
 
-    def  convert_to_tg_html(self, input_str: str) -> str:
+    def convert_to_tg_html(self, input_str: str) -> str:
         result = self.replace_underline_span(input_str)
         result = self.replace_unkfunc_span(result)
         result = self.replace_spoiler_span(result)
 
-        # Заменяем <em> на <i> и <strong> на <b>
+        # Заменяем <em> -> <i>, <strong> -> <b>
         result = (result
                   .replace("<em>", "<i>").replace("</em>", "</i>")
                   .replace("<strong>", "<b>").replace("</strong>", "</b>"))
 
-        # Заменяем ссылки, кавычки и переносы строк
+        # Ссылки, кавычки, переносы строк
         result = (result
                   .replace('<a href="/', '<a href="https://2ch.hk/')
                   .replace('&quot;', '"')
-                  # Если осталось class="spoiler" или другой атрибут, удалим его:
-                  # Можем просто вырезать все class="..."
-                  # Но аккуратно: например, удалить только class="spoiler"
-                  .replace('class="spoiler"', '')
                   .replace("<br>", "\n"))
 
-        # Можно при желании удалить target и rel атрибуты из ссылок:
+        # Удаляем атрибуты target и rel из ссылок
         result = re.sub(r'target="_blank"', '', result)
         result = re.sub(r'rel="[^"]*"', '', result)
+
+        # Удаляем class="spoiler" если остался где-то
+        result = re.sub(r'class="[^"]*"', '', result)
 
         return result
 
     def replace_underline_span_html(self, input_str: str) -> str:
-        # Аналог для HTML без telegram-specific преобразований
+        # Для обычного HTML (не для Telegram)
         regex = re.compile(r'<span class="u">(.*?)</span>', flags=re.DOTALL)
         result = input_str
         while True:

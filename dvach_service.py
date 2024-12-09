@@ -9,10 +9,6 @@ class DvachService:
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def fetch_threads(self, board="b", max_retries=3, delay=5):
-        """
-        Получение списка тредов с доски.
-        /b/threads.json - возвращает список тредов
-        """
         url = f"{self.BASE_URL}/{board}/threads.json"
         self.logger.info(f"Попытка получить список тредов с {url}")
 
@@ -22,11 +18,9 @@ class DvachService:
                 r = requests.get(url)
                 r.raise_for_status()
                 data = r.json()
-
-                self.logger.debug(f"Ответ получен. Ключи верхнего уровня: {list(data.keys()) if isinstance(data, dict) else 'не dict'}")
+                self.logger.debug(f"Ответ получен. Ключи: {list(data.keys()) if isinstance(data, dict) else 'не dict'}")
                 threads = data.get("threads", [])
                 self.logger.info(f"Получено тредов: {len(threads)}")
-
                 return threads
             except requests.exceptions.HTTPError as e:
                 self.logger.error(f"HTTP Error при получении тредов с {url}: {e}")
@@ -41,9 +35,6 @@ class DvachService:
                 raise
 
     def fetch_thread_data(self, thread_num, board="b", max_retries=3, delay=5):
-        """
-        Получение данных о треде, включая OP-пост и медиафайлы.
-        """
         url = f"{self.BASE_URL}/{board}/res/{thread_num}.json"
         self.logger.info(f"Попытка получить данные треда {thread_num} с {url}")
 
@@ -53,7 +44,6 @@ class DvachService:
                 r = requests.get(url)
                 r.raise_for_status()
                 data = r.json()
-
                 self.logger.debug(f"Ответ для треда {thread_num} получен. Ключи: {list(data.keys()) if isinstance(data, dict) else 'не dict'}")
 
                 threads_data = data.get("threads", [])
@@ -71,7 +61,6 @@ class DvachService:
                     self.logger.warning(f"Посты отсутствуют в треде {thread_num}, thread_info ключи: {list(thread_info.keys())}, data: {data}")
                     return None
 
-                # ОП-пост — это первый пост
                 op_post = posts[0]
                 op_comment = op_post.get("comment", "Без текста")
 
@@ -102,7 +91,7 @@ class DvachService:
                     self.logger.info(f"Повторная попытка через {delay} секунд.")
                     time.sleep(delay)
                 else:
-                    self.logger.exception(f"Исчерпаны попытки получения данных треда {thread_num}.")
+                    self.logger.exception("Исчерпаны попытки получения данных треда {thread_num}.")
                     raise
             except Exception as e:
                 self.logger.exception(f"Неожиданная ошибка при обработке данных треда {thread_num}: {e}")
