@@ -53,8 +53,18 @@ def scheduled_job():
     logger.info("Запуск плановой задачи по сбору медиа...")
     asyncio.create_task(job_collect_media(dvach, posted_media, media_queue, FETCH_BATCH_SIZE, FETCH_DELAY))
 
+async def check_chat_access(bot, channel_id):
+    try:
+        logger.info(f"Проверка доступа к чату: {channel_id}")
+        chat = await bot.get_chat(chat_id=channel_id)
+        logger.info(f"Бот имеет доступ к чату: {chat.title}")
+    except Exception as e:
+        logger.error(f"Ошибка доступа к чату {channel_id}: {e}")
+        raise ValueError("Невозможно получить доступ к указанному чату!")
+
 async def main():
     logger.info("Запуск бота...")
+    await check_chat_access(bot, TELEGRAM_CHANNEL_ID)
     asyncio.create_task(post_media_from_queue(bot, TELEGRAM_CHANNEL_ID, POST_INTERVAL, media_queue))
 
     # Запускаем задачу сбора медиа каждые 1 минуту
@@ -69,4 +79,3 @@ if __name__ == "__main__":
         logger.info("Получен сигнал остановки. Завершаем работу...")
     except Exception as e:
         logger.exception("Критическая ошибка в работе бота: %s", e)
-
