@@ -91,7 +91,10 @@ async def post_media_from_queue(bot, channel_id, interval, media_queue):
         except asyncio.TimeoutError:
             logger.warning("Отправка медиагруппы прервана по таймауту. Это не критическая ошибка.")
         except Exception as e:
-            logger.error(f"Ошибка при отправке медиагруппы: {e}")
+            if "Timed out" in str(e):
+                logger.warning("Пропущена ошибка таймаута отправки медиагруппы. Продолжаем работу.")
+            else:
+                logger.error(f"Ошибка при отправке медиагруппы: {e}")
         finally:
             await asyncio.sleep(interval)
 
@@ -121,3 +124,4 @@ if __name__ == "__main__":
         logger.info("Получен сигнал остановки. Завершаем работу...")
     except Exception as e:
         logger.exception("Критическая ошибка в работе бота: %s", e)
+
