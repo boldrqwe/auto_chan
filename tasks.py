@@ -1,8 +1,11 @@
 import logging
 import asyncio
 from media_utils import create_input_media
+from harkach_markup_converter import HarkachMarkupConverter
 
 logger = logging.getLogger(__name__)
+
+converter = HarkachMarkupConverter()
 
 def job_collect_media(dvach, posted_media, media_queue):
     """Сбор медиа раз в минуту."""
@@ -18,7 +21,7 @@ def job_collect_media(dvach, posted_media, media_queue):
     media_found = 0
 
     for t in threads:
-        thread_num = t.get("num") or t.get("thread_num")  # Проверяем поле num или thread_num
+        thread_num = t.get("num") or t.get("thread_num")
         if not thread_num:
             logger.debug(f"Пропускаем тред без номера: {t}")
             continue
@@ -40,17 +43,20 @@ def job_collect_media(dvach, posted_media, media_queue):
         for m_url in new_media:
             posted_media.add(m_url)
 
+        # Преобразуем caption перед тем, как использовать
+        raw_caption = t_data["caption"][:1024]
+        caption_html = converter.convert_to_tg_html(raw_caption)
+
         # Разбиваем медиа на группы по 10 штук
         batch_size = 10
         media_groups = []
         for i in range(0, len(new_media), batch_size):
             batch = new_media[i:i+batch_size]
-            # Формируем группу: первая группа, первый элемент - с подписью
             group = []
             for idx, u in enumerate(batch):
+                # Первый элемент первой группы с подписью
                 if i == 0 and idx == 0:
-                    # Первый элемент первой группы - с подписью
-                    group.append(create_input_media(u, caption=t_data["caption"][:1024]))
+                    group.append(create_input_media(u, caption=caption_html))
                 else:
                     group.append(create_input_media(u))
             media_groups.append(group)
@@ -65,6 +71,7 @@ def job_collect_media(dvach, posted_media, media_queue):
     logger.info("Сбор медиа завершен. Обработано тредов: %d, найдено медиа: %d, очередь размером: %d",
                 threads_processed, media_found, len(media_queue))
 
+
 async def post_media_from_queue(bot, TELEGRAM_CHANNEL_ID, POST_INTERVAL, media_queue):
     """Отправка групп из очереди в канал."""
     logger.info("Запуск задачи отправки медиагрупп в Telegram.")
@@ -73,7 +80,8 @@ async def post_media_from_queue(bot, TELEGRAM_CHANNEL_ID, POST_INTERVAL, media_q
             media_group = media_queue.pop(0)
             logger.info("Отправка медиагруппы из очереди: %s", [m.media for m in media_group])
             try:
-                await bot.send_media_group(chat_id=TELEGRAM_CHANNEL_ID, media=media_group)
+                # Указываем parse_mode='HTML', чтобы Telegram знал, что это HTML-разметка
+                await bot.send_media_group(chat_id=TELEGRAM_CHANNEL_ID, media=media_group, parse_mode='HTML')
                 logger.info("Медиагруппа успешно отправлена.")
                 await asyncio.sleep(POST_INTERVAL)
             except Exception as e:
