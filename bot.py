@@ -24,9 +24,9 @@ nest_asyncio.apply()
 # Загрузка переменных окружения
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 TELEGRAM_CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID")
-POST_INTERVAL = int(os.environ.get("TELEGRAM_POST_INTERVAL", "60"))  # Пауза между отправками в секундах
+POST_INTERVAL = int(os.environ.get("TELEGRAM_POST_INTERVAL", "50"))  # Пауза между отправками в секундах
 FETCH_BATCH_SIZE = int(os.environ.get("FETCH_BATCH_SIZE", "1"))  # Количество тредов за раз
-FETCH_DELAY = int(os.environ.get("FETCH_DELAY", "60"))  # Пауза между пакетами в секундах
+FETCH_DELAY = int(os.environ.get("FETCH_DELAY", "50"))  # Пауза между пакетами в секундах
 
 # Проверка переменных окружения
 if not BOT_TOKEN:
