@@ -34,3 +34,13 @@ async def filter_accessible_media(media_group):
         else:
             logger.warning(f"URL недоступен: {media.media}")
     return accessible_media
+
+
+async def check_chat_access(bot, channel_id):
+    try:
+        logger.info(f"Проверка доступа к чату: {channel_id}")
+        chat = await bot.get_chat(chat_id=channel_id)
+        logger.info(f"Бот имеет доступ к чату: {chat.title}")
+    except Exception as e:
+        logger.error(f"Ошибка доступа к чату {channel_id}: {e}")
+        raise ValueError("Невозможно получить доступ к указанному чату!")

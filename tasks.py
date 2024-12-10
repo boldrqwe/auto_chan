@@ -25,6 +25,19 @@ async def job_collect_media(dvach, posted_media, media_queue, batch_size=5, dela
     media_found = 0
 
     # Разделяем список тредов на пакеты
+    media_found, threads_processed = await batch_threads(batch_size, delay, dvach, media_found, media_queue,
+                                                         posted_media, threads, threads_processed)
+
+    logger.info("Сбор медиа завершен. Обработано тредов: %d, найдено медиа: %d, очередь размером: %d",
+                threads_processed, media_found, media_queue.qsize())
+
+    # Очистка posted_media для уменьшения потребления памяти
+    if len(posted_media) > 10000:
+        logger.info("Очистка коллекции отправленных медиа.")
+        posted_media.clear()
+
+
+async def batch_threads(batch_size, delay, dvach, media_found, media_queue, posted_media, threads, threads_processed):
     for i in range(0, len(threads), batch_size):
         batch = threads[i:i + batch_size]
         for t in batch:
@@ -80,31 +93,5 @@ async def job_collect_media(dvach, posted_media, media_queue, batch_size=5, dela
         # Пауза перед следующим пакетом тредов
         logger.info("Пакет тредов обработан. Ждём %d секунд перед следующим пакетом.", delay)
         await asyncio.sleep(delay)
+    return media_found, threads_processed
 
-    logger.info("Сбор медиа завершен. Обработано тредов: %d, найдено медиа: %d, очередь размером: %d",
-                threads_processed, media_found, media_queue.qsize())
-
-    # Очистка posted_media для уменьшения потребления памяти
-    if len(posted_media) > 10000:
-        logger.info("Очистка коллекции отправленных медиа.")
-        posted_media.clear()
-
-async def post_media_from_queue(bot, TELEGRAM_CHANNEL_ID, post_interval, media_queue):
-    """Отправка групп из очереди в Telegram-канал."""
-    logger.info("Запуск задачи отправки медиагрупп в Telegram.")
-    while True:
-        if not media_queue.empty():
-            media_group = await media_queue.get()
-            logger.info("Отправка медиагруппы из очереди: %s", [m.media for m in media_group])
-            try:
-                await bot.send_media_group(chat_id=TELEGRAM_CHANNEL_ID, media=media_group, parse_mode='HTML')
-                logger.info("Медиагруппа успешно отправлена.")
-                await asyncio.sleep(post_interval)  # Пауза между отправками
-            except Exception as e:
-                logger.error(f"Ошибка при отправке медиагруппы: {e}")
-                # Если произошла ошибка, вернём группу обратно в очередь для повторной попытки
-                await media_queue.put(media_group)
-                await asyncio.sleep(post_interval)
-        else:
-            # Если очередь пуста, ждём 5 секунд перед повторной проверкой
-            await asyncio.sleep(5)
