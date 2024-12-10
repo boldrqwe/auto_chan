@@ -1,4 +1,6 @@
 import logging
+
+import httpx
 from telegram import InputMediaPhoto, InputMediaVideo
 
 logger = logging.getLogger(__name__)
@@ -13,3 +15,22 @@ def create_input_media(url: str, caption: str = None):
     else:
         logger.debug("Неизвестный формат. Используем InputMediaPhoto по умолчанию.")
         return InputMediaPhoto(media=url, caption=caption, parse_mode='HTML')
+
+
+async def is_url_accessible(url):
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.head(url)
+            return response.status_code == 200
+    except Exception as e:
+        logger.error(f"Ошибка проверки URL {url}: {e}")
+        return False
+
+async def filter_accessible_media(media_group):
+    accessible_media = []
+    for media in media_group:
+        if await is_url_accessible(media.media):
+            accessible_media.append(media)
+        else:
+            logger.warning(f"URL недоступен: {media.media}")
+    return accessible_media
